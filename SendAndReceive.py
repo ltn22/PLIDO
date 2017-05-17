@@ -15,29 +15,31 @@ while not lora.has_joined():
 
 s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 s.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
-s.setsockopt(socket.SOL_LORA,  socket.SO_CONFIRMED,  False)
+s.setsockopt(socket.SOL_LORA,  socket.SO_CONFIRMED,  True)
 
-pycom.rgbled(0xFF0000)
+pycom.heartbeat(False)
 
-s.setblocking(True)
-s.settimeout(10);
+while True:
+    pycom.rgbled(0xFF0000)
+    s.setblocking(True)
+    s.settimeout(10)
     
-try:
-        s.send(bytes('Hello LoRa'))
-except:
+    try:
+        s.send('Hello LoRa')
+    except:
         print ('timeout in sending')
+            
+    pycom.rgbled(0x00FF00)
         
-pycom.rgbled(0x00FF00)
-    
-try:
+    try:
         data = s.recv(64)
-    
+        
         print(data)
         pycom.rgbled(0x0000FF)
-except:
+    except:
         print ('timeout in receive')
         pycom.rgbled(0x000000)
-
-        
-s.setblocking(False)
-time.sleep (20)
+    
+            
+    s.setblocking(False)
+    time.sleep (29)
