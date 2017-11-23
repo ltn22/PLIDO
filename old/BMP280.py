@@ -6,9 +6,10 @@
 
 
 import time
+#from machine import  I2C
 
 class BMP280:
-
+    
     def __init__(self,  bus):
         self.dig_T1 = 0
         self.dig_T2 = 0
@@ -25,13 +26,13 @@ class BMP280:
 
         self.i2c = bus
         self.getParam()
-
+        
     def getParam(self):
         # Get I2C bus
         # BMP280 address, 0x76(118)
         # Read data back from 0x88(136), 24 bytes
         b1 = self.i2c.readfrom_mem(0x76, 0x88, 24)
-
+        
         # Convert the data
         # Temp coefficents
         self.dig_T1 = b1[1] * 256 + b1[0]
@@ -41,7 +42,7 @@ class BMP280:
         self.dig_T3 = b1[5] * 256 + b1[4]
         if self.dig_T3 > 32767 :
             self.dig_T3 -= 65536
-
+        
         # Pressure coefficents
         self.dig_P1 = b1[7] * 256 + b1[6]
         self.dig_P2 = b1[9] * 256 + b1[8]
@@ -74,29 +75,29 @@ class BMP280:
 # Select Control measurement register, 0xF4(244)
 #		0x27(39)	Pressure and Temperature Oversampling rate = 1
 #					Normal mode
-
+        
         self.i2c.writeto_mem(0x76, 0xF4, b'\x27')
         # BMP280 address, 0x76(118)
         # Select Configuration register, 0xF5(245)
         #		0xA0(00)	Stand_by time = 1000 ms
         self.i2c.writeto_mem(0x76, 0xF5, b'\x00')
-
+                
         # BMP280 address, 0x76(118)
         # Read data back from 0xF7(247), 8 bytes
         # Pressure MSB, Pressure LSB, Pressure xLSB, Temperature MSB, Temperature LSB
         # Temperature xLSB, Humidity MSB, Humidity LSB
         data = self.i2c.readfrom_mem(0x76, 0xF7, 8)
-
+        
         # Convert pressure and temperature data to 19-bits
         adc_p = ((data[0] * 65536) + (data[1] * 256) + (data[2] & 0xF0)) / 16
         adc_t = ((data[3] * 65536) + (data[4] * 256) + (data[5] & 0xF0)) / 16
-
+    
         # Temperature offset calculations
         var1 = ((adc_t) / 16384.0 - (self.dig_T1) / 1024.0) * (self.dig_T2)
         var2 = (((adc_t) / 131072.0 - (self.dig_T1) / 8192.0) * ((adc_t)/131072.0 - (self.dig_T1)/8192.0)) * (self.dig_T3)
         t_fine = (var1 + var2)
         cTemp = (var1 + var2) / 5120.0
-
+        
         # Pressure offset calculations
         var1 = (t_fine / 2.0) - 64000.0
         var2 = var1 * var1 * (self.dig_P6) / 32768.0
@@ -109,24 +110,16 @@ class BMP280:
         var1 = (self.dig_P9) * p * p / 2147483648.0
         var2 = p * (self.dig_P8) / 32768.0
         pressure = (p + (var1 + var2 + (self.dig_P7)) / 16.0) / 100
-
-        return (adc_p,  pressure,  cTemp)
-
-
-def main():
-    from machine import  I2C
-    i2c = I2C(0, I2C.MASTER, baudrate=100000)
-    print(i2c.scan())
     
-    bmp = BMP280(i2c)
-    rpd =0.0
-    pd = 0.0
-    while True:
-       (rp,  p,  t) = bmp.getValue(0)
-       print ('{0:8.2f}{1:8.2f}{2:8.2f} {3:10.2f}{4:8.2f}'.format(rp,  p,  t,  rpd-rp,  pd-p))
-       rpd = rp
-       pd = p
-       time.sleep(0.01)
-
-if __name__ == '__main__':
-    main()
+        return (adc_p,  pressure,  cTemp)
+        
+#i2c = I2C(0, I2C.MASTER, baudrate=100000)
+#bmp = BMP280(i2c)
+#rpd =0.0
+#pd = 0.0
+#while True:
+#    (rp,  p,  t) = bmp.getValue(0)
+#    print ('{0:8.2f}{1:8.2f}{2:8.2f} {3:10.2f}{4:8.2f}'.format(rp,  p,  t,  rpd-rp,  pd-p))
+#    rpd = rp
+#    pd = p
+#    time.sleep(0.01)
