@@ -2,6 +2,7 @@ from network import LoRa
 import socket
 import time
 import pycom
+import binascii
 
 
 lora = LoRa(mode=LoRa.LORAWAN)
